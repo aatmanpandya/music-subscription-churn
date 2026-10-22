@@ -1,0 +1,10 @@
+*
+!pipeline/__init__.py
+!pipeline/schema.py
+!pipeline/features.py
+!pipeline/calibration.py
+!pipeline/scorer.py
+!service/__init__.py
+!service/app.py
+!service/requirements-service.txt
+!service/model_bundle

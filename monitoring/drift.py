@@ -15,6 +15,11 @@ from pipeline.features import Preprocessor
 from pipeline.metrics import reliability_table, summarize
 from pipeline.schema import CAT, NUM
 
+# A feature counts as "material" for escalation if it carries >= 1% of the model's gain.
+# PSI on a feature the model barely uses cannot move predictions much, so an ALERT-level PSI
+# there is capped at WARN in the component status (the raw PSI status stays in the table).
+MATERIAL_IMPORTANCE = 0.01
+
 ORDER = {"NOT_EVALUATED": -1, "OK": 0, "WARN": 1, "ALERT": 2}
 
 # Thresholds. Chosen a priori from convention / business tolerance, not tuned on March.
@@ -102,7 +107,10 @@ def run(features: pd.DataFrame, raw_scores, final_scores, profile: dict, prep: P
         labels=None, top_n: int = 10) -> dict:
     fd = feature_drift(features, profile, prep)
     pdrift = prediction_drift(raw_scores, profile)
-    feature_status = worst(fd.status)
+    fd["material"] = fd.importance_share >= MATERIAL_IMPORTANCE
+    capped = fd.status.where(~((fd.status == "ALERT") & ~fd.material), "WARN")
+    feature_status = worst(capped)
+    raw_feature_status = worst(fd.status)
     components = {"feature_drift": feature_status, "prediction_drift": pdrift["status"]}
     perf = None
     if labels is not None:
@@ -118,6 +126,8 @@ def run(features: pd.DataFrame, raw_scores, final_scores, profile: dict, prep: P
         "thresholds": THRESHOLDS,
         "n_rows": int(len(features)),
         "feature_drift": {
+            "raw_max_psi_status": raw_feature_status,
+            "material_importance_threshold": MATERIAL_IMPORTANCE,
             "n_warn": int((fd.status == "WARN").sum()),
             "n_alert": int((fd.status == "ALERT").sum()),
             "top": fd.head(top_n).to_dict(orient="records"),

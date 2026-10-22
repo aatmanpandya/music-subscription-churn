@@ -118,15 +118,18 @@ def to_markdown(res: dict, meta: dict) -> str:
     fd = res["feature_drift"]
     a("## Feature drift (ranked by PSI)")
     a("")
-    a(f"{fd['n_alert']} feature(s) at ALERT, {fd['n_warn']} at WARN, of {len(fd['all'])}.")
+    a(f"{fd['n_alert']} feature(s) at ALERT, {fd['n_warn']} at WARN, of {len(fd['all'])} "
+      f"(raw worst-PSI status {fd['raw_max_psi_status']}; the component status caps ALERTs on features "
+      f"with under {fd['material_importance_threshold']:.0%} of model gain at WARN, because drift in an "
+      f"input the model barely uses cannot move its predictions much).")
     a("")
     a("| # | feature | PSI | status | model importance | null rate ref -> batch | mean ref -> batch |")
     a("|---|---|---|---|---|---|---|")
     for i, r in enumerate(fd["all"], 1):
         if r["psi"] < 0.02 and i > 10:
             continue
-        mean = (f"{r['ref_mean']:.3g} -> {r['cur_mean']:.3g}"
-                if r.get("cur_mean") is not None and r.get("ref_mean") is not None else "")
+        rm, cm = r.get("ref_mean"), r.get("cur_mean")
+        mean = f"{rm:.3g} -> {cm:.3g}" if rm is not None and cm is not None and rm == rm and cm == cm else ""
         a(f"| {i} | {r['feature']} | {r['psi']:.3f} | {r['status']} | {r['importance_share']:.1%} | "
           f"{r['ref_null_rate']:.1%} -> {r['cur_null_rate']:.1%} | {mean} |")
     a("")
