@@ -1,0 +1,184 @@
+{
+ "cohort": "march_2017",
+ "parent_version": "1",
+ "n": 970960,
+ "n_fit_A": 485480,
+ "n_eval_B": 485480,
+ "training_base_rate": 0.06392318693160645,
+ "cohort_base_rate": 0.08994191315811156,
+ "base_rate_estimate_from_A": 0.08994191315811156,
+ "label_free_em_estimate_of_base_rate": 0.0670546988920264,
+ "heldout_results_B": {
+  "none (raw model)": {
+   "n": 485480,
+   "actual_rate": 0.08994191315811156,
+   "mean_pred": 0.06524324749519028,
+   "mean_pred_over_actual": 0.7253931476918579,
+   "roc_auc": 0.8741634435021629,
+   "pr_auc": 0.6027871449779714,
+   "brier": 0.0537340289254187,
+   "log_loss": 0.200909448792643,
+   "ece_quantile10": 0.024698665662921282,
+   "ece_uniform10": 0.02469866566292128
+  },
+  "prior_shift": {
+   "n": 485480,
+   "actual_rate": 0.08994191315811156,
+   "mean_pred": 0.08098268773086281,
+   "mean_pred_over_actual": 0.9003887607827614,
+   "roc_auc": 0.8741634435021629,
+   "pr_auc": 0.6027871449779714,
+   "brier": 0.05243032020511159,
+   "log_loss": 0.194596723535935,
+   "ece_quantile10": 0.00929405095086097,
+   "ece_uniform10": 0.010524058521796067
+  },
+  "platt": {
+   "n": 485480,
+   "actual_rate": 0.08994191315811156,
+   "mean_pred": 0.09013097792225859,
+   "mean_pred_over_actual": 1.002102076301342,
+   "roc_auc": 0.8741634435021629,
+   "pr_auc": 0.6027871449779714,
+   "brier": 0.052401899100484144,
+   "log_loss": 0.1935465941134517,
+   "ece_quantile10": 0.004795923675065758,
+   "ece_uniform10": 0.00664286099680823
+  },
+  "isotonic": {
+   "n": 485480,
+   "actual_rate": 0.08994191315811156,
+   "mean_pred": 0.09011725471802923,
+   "mean_pred_over_actual": 1.0019494977787433,
+   "roc_auc": 0.8741634435021629,
+   "pr_auc": 0.6027871449779714,
+   "brier": 0.05215185849799483,
+   "log_loss": 0.19280554016533513,
+   "ece_quantile10": 0.0010118093945046414,
+   "ece_uniform10": 0.0009415236471498623
+  }
+ },
+ "chosen": "isotonic",
+ "repeated_splits": {
+  "none (raw model)": {
+   "ece": [
+    0.02473809524704155,
+    6.534569142492611e-05
+   ],
+   "mean_pred": [
+    0.06520381791107002,
+    6.534569142492596e-05
+   ],
+   "brier": [
+    0.053886629341543146,
+    0.00011203004808974538
+   ],
+   "auc": [
+    0.873338683190368,
+    0.0006155310524503392
+   ]
+  },
+  "prior_shift": {
+   "ece": [
+    0.00932746177662356,
+    0.00016142646140915212
+   ],
+   "mean_pred": [
+    0.08095863462571028,
+    7.141217970923768e-05
+   ],
+   "brier": [
+    0.052597642823446034,
+    0.00011944394124904067
+   ],
+   "auc": [
+    0.873338683190368,
+    0.0006155310524503392
+   ]
+  },
+  "platt": {
+   "ece": [
+    0.004861301180155642,
+    0.00021103167466660753
+   ],
+   "mean_pred": [
+    0.09009357758870402,
+    0.00014561899335962177
+   ],
+   "brier": [
+    0.05256926667882187,
+    0.00011597948805067119
+   ],
+   "auc": [
+    0.873338683190368,
+    0.0006155310524503392
+   ]
+  },
+  "isotonic": {
+   "ece": [
+    0.0010014425938651957,
+    0.0002836568832900696
+   ],
+   "mean_pred": [
+    0.09008728499761831,
+    0.00014772709847062378
+   ],
+   "brier": [
+    0.05231349334527642,
+    0.0001220973228337488
+   ],
+   "auc": [
+    0.873338683190368,
+    0.0006155310524503392
+   ]
+  }
+ },
+ "calibrators": {
+  "prior_shift": {
+   "kind": "prior_shift",
+   "old_rate": 0.06392318693160645,
+   "new_rate": 0.08994191315811156
+  },
+  "platt": {
+   "kind": "platt",
+   "a": 0.9403588174577264,
+   "b": 0.42343456662357903
+  },
+  "isotonic": {
+   "kind": "isotonic",
+   "n_knots": 300
+  }
+ },
+ "decision": {
+  "checks": {
+   "enough_holdout_users": true,
+   "enough_holdout_positives": true,
+   "calibration_gap_within_5pct": true,
+   "ece_at_most_half_of_old": true,
+   "auc_unchanged_within_0.001": true,
+   "brier_not_worse": true,
+   "ece_improves_in_every_repeat": true
+  },
+  "promote": true
+ },
+ "rule": {
+  "min_holdout_users": 50000,
+  "min_holdout_positives": 1000,
+  "max_calibration_gap_rel": 0.05,
+  "max_ece_ratio": 0.5,
+  "max_abs_auc_change": 0.001,
+  "brier_not_worse": true,
+  "ece_improves_in_all_repeats": true
+ },
+ "admission": {
+  "max_abs_auc_change": 0.001,
+  "brier_not_worse": true
+ },
+ "transfer_check": {
+  "earlier_actual_rate": 0.06392287077349786,
+  "earlier_mean_pred_raw": 0.06377934664487839,
+  "earlier_mean_pred_recalibrated_on_march": 0.08842464272827832
+ },
+ "new_version": 2,
+ "promoted": true
+}
