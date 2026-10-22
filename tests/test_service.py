@@ -62,3 +62,12 @@ def test_out_of_range_and_missing_fields_are_422(client, train_frame):
     nonint = {**_row(train_frame), "plan_days": 30.5}
     assert client.post("/predict", json=nonint).status_code == 422       # caught by pipeline.schema
     assert client.post("/predict", json={"subscribers": []}).status_code == 422
+
+
+def test_validation_errors_name_the_offending_field(client, train_frame):
+    bad = _row(train_frame)
+    bad["hours_30"] = 5000
+    detail = client.post("/predict", json=bad).json()["detail"]
+    assert any("hours_30" in str(d["loc"]) for d in detail) and len(detail) == 1
+    detail = client.post("/predict", json={"subscribers": [bad]}).json()["detail"]
+    assert any("hours_30" in str(d["loc"]) for d in detail)

@@ -123,7 +123,7 @@ def plot_before_after(tables: dict, out: Path, title: str) -> None:
 
 def fmt_row(name, m):
     return (f"| {name} | {m['mean_pred']:.2%} | {m['actual_rate']:.2%} | {m['ece_quantile10']:.4f} | "
-            f"{m['ece_uniform10']:.4f} | {m['brier']:.5f} | {m['log_loss']:.5f} | {m['roc_auc']:.4f} |")
+            f"{m['ece_uniform10']:.4f} | {m['brier']:.5f} | {m['log_loss']:.5f} | {m['roc_auc']:.4f} | {m['pr_auc']:.4f} |")
 
 
 def main(argv=None) -> int:
@@ -247,8 +247,8 @@ def main(argv=None) -> int:
     (out / "recalibration.json").write_text(json.dumps(summary, indent=1, default=float))
 
     # ---- console + markdown summary ---------------------------------------------
-    hdr = ("| method | mean predicted | actual | ECE (equal-count) | ECE (equal-width) | Brier | log loss | ROC-AUC |\n"
-           "|---|---|---|---|---|---|---|---|")
+    hdr = ("| method | mean predicted | actual | ECE (equal-count) | ECE (equal-width) | Brier | log loss | ROC-AUC | PR-AUC |\n"
+           "|---|---|---|---|---|---|---|---|---|")
     md = [f"# Recalibration of v{parent.version} on {args.cohort}", "",
           f"Fit on random half A ({len(ia):,} users), evaluated on half B ({len(ib):,} users). "
           f"Training base rate {old_rate:.2%}; cohort base rate {y.mean():.2%}; estimate from A "

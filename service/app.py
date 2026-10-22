@@ -27,7 +27,7 @@ from typing import Annotated, Literal, Optional, Union
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field, create_model
+from pydantic import BaseModel, ConfigDict, Discriminator, Field, Tag, create_model
 
 from pipeline.schema import CATEGORICAL, FEATURES, NUMERIC, SchemaValidationError, validate_features
 from pipeline.scorer import ChurnScorer
@@ -56,6 +56,19 @@ Subscriber = create_model("Subscriber", __config__=ConfigDict(extra="forbid"), *
 class BatchRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     subscribers: Annotated[list[Subscriber], Field(min_length=1, max_length=MAX_BATCH)]
+
+
+def _which(v) -> str:
+    """Route a body to the batch or single schema so validation errors name the right fields."""
+    if isinstance(v, dict):
+        return "batch" if "subscribers" in v else "single"
+    return "batch" if isinstance(v, BatchRequest) else "single"
+
+
+PredictBody = Annotated[
+    Union[Annotated[Subscriber, Tag("single")], Annotated[BatchRequest, Tag("batch")]],
+    Discriminator(_which),
+]
 
 
 class Prediction(BaseModel):
@@ -112,7 +125,7 @@ def model_info():
 
 
 @app.post("/predict", response_model=PredictResponse)
-def predict(body: Union[BatchRequest, Subscriber]):
+def predict(body: PredictBody):
     rows = body.subscribers if isinstance(body, BatchRequest) else [body]
     df = pd.DataFrame([r.model_dump() for r in rows])
     for c in FEATURES:                      # all-None columns arrive as object dtype

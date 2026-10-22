@@ -86,6 +86,9 @@ def promote(client: MlflowClient, version: str | int) -> None:
         if str(old) != str(version):
             set_alias(client, config.PREVIOUS_ALIAS, old)
     set_alias(client, config.CHAMPION_ALIAS, version)
+    if has_alias(client, config.CHALLENGER_ALIAS) and \
+            str(get_version(client, alias=config.CHALLENGER_ALIAS).version) == str(version):
+        client.delete_registered_model_alias(config.MODEL_NAME, config.CHALLENGER_ALIAS)  # no longer pending
 
 
 def main(argv=None):
@@ -98,7 +101,8 @@ def main(argv=None):
     args = ap.parse_args(argv)
     client = configure()
     if args.cmd == "list":
-        for mv in sorted(client.search_model_versions(f"name='{config.MODEL_NAME}'"), key=lambda m: int(m.version)):
+        for v in sorted(int(m.version) for m in client.search_model_versions(f"name='{config.MODEL_NAME}'")):
+            mv = client.get_model_version(config.MODEL_NAME, str(v))   # search results omit aliases
             print(f"v{mv.version}  aliases={mv.aliases}  run={mv.run_id[:8]}  tags={dict(mv.tags)}")
     elif args.cmd == "promote":
         promote(client, args.version)

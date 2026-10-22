@@ -36,13 +36,24 @@ def test_every_method_improves_ece_on_heldout_half(shifted, name):
     assert gap_after < 0.5 * gap_before
 
 
-@pytest.mark.parametrize("name,tol", [("prior_shift", 1e-9), ("platt", 1e-9), ("isotonic", 5e-3)])
+@pytest.mark.parametrize("name,tol", [("prior_shift", 1e-9), ("platt", 1e-9), ("isotonic", 1e-6)])
 def test_ranking_is_unchanged(shifted, name, tol):
     raw, y, ia, ib, old = shifted
     cal = R.fit_candidates(raw[ia], y[ia], old)[name]
     auc0 = summarize(y[ib], raw[ib])["roc_auc"]
     auc1 = summarize(y[ib], cal.transform(raw[ib]))["roc_auc"]
     assert abs(auc1 - auc0) <= tol
+
+
+def test_isotonic_keeps_the_raw_models_ordering_and_does_not_create_ties(shifted):
+    """Plain isotonic collapses scores into flat steps; ours must not (top-k lists, PR-AUC)."""
+    raw, y, ia, ib, old = shifted
+    iso = R.fit_candidates(raw[ia], y[ia], old)["isotonic"]
+    out = iso.transform(raw[ib])
+    assert len(np.unique(out)) >= 0.95 * len(np.unique(raw[ib]))
+    assert summarize(y[ib], out)["pr_auc"] == pytest.approx(summarize(y[ib], raw[ib])["pr_auc"], abs=1e-6)
+    order = np.argsort(raw[ib], kind="stable")
+    assert (np.diff(out[order]) >= 0).all()
 
 
 def test_calibrators_are_monotone(shifted):

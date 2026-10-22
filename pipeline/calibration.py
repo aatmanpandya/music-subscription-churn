@@ -104,8 +104,17 @@ class Platt(Calibrator):
 
 
 class Isotonic(Calibrator):
-    """Non-parametric monotone step function, stored as knots and applied with np.interp."""
+    """Non-parametric monotone step function, stored as knots and applied with np.interp.
+
+    A plain isotonic fit is only weakly monotone: it flattens runs of scores into one
+    value (on March, 800k distinct raw scores collapsed into 188 values), which ties
+    users that the raw model could rank and costs PR-AUC / top-k quality. So the output is
+    blended with a vanishing share of the raw score, (1 - 1e-6) * isotonic + 1e-6 * p.
+    That makes the map strictly increasing, keeps the order of every pair the raw model
+    ordered, and moves probabilities by less than 1e-6.
+    """
     kind = "isotonic"
+    TIE_EPS = 1e-6
 
     def __init__(self, x, y):
         self.x = np.asarray(x, dtype="float64")
@@ -120,7 +129,8 @@ class Isotonic(Calibrator):
         return cls(iso.X_thresholds_, iso.y_thresholds_)
 
     def transform(self, p):
-        return np.interp(np.asarray(p, dtype="float64"), self.x, self.y)
+        p = np.asarray(p, dtype="float64")
+        return (1 - self.TIE_EPS) * np.interp(p, self.x, self.y) + self.TIE_EPS * p
 
     def to_dict(self):
         return {"kind": self.kind, "x": self.x.tolist(), "y": self.y.tolist()}
