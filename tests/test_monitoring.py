@@ -1,4 +1,6 @@
 """The monitor must stay quiet on stable data and flag the miniature March incident."""
+import copy
+
 import numpy as np
 
 from monitoring import drift
@@ -44,9 +46,11 @@ def test_overall_status_is_worst_component():
 def test_alert_on_an_unimportant_feature_is_capped_at_warn(trained):
     """Drift in an input the model barely uses must not page anyone on its own."""
     d = make_frame(30000, seed=13)
-    d["completion_rate_30"] = np.clip(d["completion_rate_30"] * 0.2, 0, 1)       # big shift
-    res = monitor(d, trained["scorer"], trained["profile"])
-    row = next(r for r in res["feature_drift"]["all"] if r["feature"] == "completion_rate_30")
+    d["account_age_days"] = d["account_age_days"] * 0.2                        # big shift
+    profile = copy.deepcopy(trained["profile"])
+    profile["importance_share"]["account_age_days"] = 0.001                     # model barely uses it
+    res = monitor(d, trained["scorer"], profile)
+    row = next(r for r in res["feature_drift"]["all"] if r["feature"] == "account_age_days")
     assert row["status"] == "ALERT" and row["importance_share"] < drift.MATERIAL_IMPORTANCE
     assert res["feature_drift"]["raw_max_psi_status"] == "ALERT"
     assert res["components"]["feature_drift"] == "WARN"
