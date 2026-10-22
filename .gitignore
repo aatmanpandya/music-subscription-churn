@@ -11,3 +11,14 @@ __pycache__/
 
 # Private notes
 PREP_NOTES.md
+
+# Production pipeline: private notes, MLflow stores, generated outputs
+INTERVIEW_NOTES_PRODUCTION.md
+mlruns/
+mlartifacts/
+mlflow.db
+mlflow.db-*
+outputs/
+service/model_bundle/
+.pytest_cache/
+*.egg-info/
