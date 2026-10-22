@@ -1,0 +1,13 @@
+# Kaggle competition files: download them yourself (see README)
+data/
+*.7z
+WSDMChurnLabeller.scala
+
+.venv/
+.duckdb_tmp/
+.ipynb_checkpoints/
+__pycache__/
+.DS_Store
+
+# Private notes
+PREP_NOTES.md
