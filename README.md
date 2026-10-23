@@ -19,6 +19,14 @@ The data isn't in this repository; it's about 9 GB compressed and governed by th
 | `user_logs_v2.csv` | 18.4M | Daily listening, March 2017 | Not used: it falls after both cutoffs |
 | `sample_submission_*.csv` | | Kaggle submission templates | Not used: no information |
 
+## Production pipeline
+
+The model is also built out as a production-style system; see **[PRODUCTION.md](PRODUCTION.md)**. It covers:
+- schema-validated training with an MLflow model registry
+- batch scoring and a FastAPI service in Docker
+- drift monitoring that caught a real calibration incident on the March cohort (6.5% predicted vs 9.0% actual churn)
+- leak-free recalibration (ECE 0.025 → 0.001)
+
 ## Run it
 
 1. Download the data and unpack every `.7z` archive so the CSVs sit directly in `data/`.
