@@ -15,10 +15,19 @@ from pipeline.features import Preprocessor
 from pipeline.metrics import reliability_table, summarize
 from pipeline.schema import CAT, NUM
 
-# A feature counts as "material" for escalation if it carries >= 1% of the model's gain.
-# PSI on a feature the model barely uses cannot move predictions much, so an ALERT-level PSI
-# there is capped at WARN in the component status (the raw PSI status stays in the table).
-MATERIAL_IMPORTANCE = 0.01
+# Features defined relative to the scoring cutoff drift mechanically every month: the cutoff
+# moves, the data's fixed start date does not, and cumulative counts grow. A PSI ALERT on
+# these is capped at WARN in the component status. The raw status is always shown next to it.
+# This list is a judgement made after seeing the March run (tenure PSI 0.697 was a 28-day
+# cutoff artifact); it has NOT been validated out of sample. Each entry records its reason.
+CUTOFF_RELATIVE_EXEMPT = {
+    "subscriber_tenure_days": "days from first transaction (fixed data start) to the cutoff; upper tail moves by the cutoff shift",
+    "account_age_days": "days from registration to the cutoff; grows by the cutoff shift",
+    "days_to_expiry": "expiry date minus the cutoff; depends on which transactions files exist at the cutoff",
+    "days_since_last_listen": "days from last listening to the cutoff; depends on the log window end",
+    "n_transactions": "cumulative count of transactions up to the cutoff; grows with each month of history",
+    "n_cancels": "cumulative count of cancellations up to the cutoff; grows with each month of history",
+}
 
 ORDER = {"NOT_EVALUATED": -1, "OK": 0, "WARN": 1, "ALERT": 2}
 
@@ -107,8 +116,9 @@ def run(features: pd.DataFrame, raw_scores, final_scores, profile: dict, prep: P
         labels=None, top_n: int = 10) -> dict:
     fd = feature_drift(features, profile, prep)
     pdrift = prediction_drift(raw_scores, profile)
-    fd["material"] = fd.importance_share >= MATERIAL_IMPORTANCE
-    capped = fd.status.where(~((fd.status == "ALERT") & ~fd.material), "WARN")
+    fd["exempt_reason"] = fd.feature.map(CUTOFF_RELATIVE_EXEMPT)
+    exempt = fd.exempt_reason.notna()
+    capped = fd.status.where(~((fd.status == "ALERT") & exempt), "WARN")
     feature_status = worst(capped)
     raw_feature_status = worst(fd.status)
     components = {"feature_drift": feature_status, "prediction_drift": pdrift["status"]}
@@ -127,7 +137,7 @@ def run(features: pd.DataFrame, raw_scores, final_scores, profile: dict, prep: P
         "n_rows": int(len(features)),
         "feature_drift": {
             "raw_max_psi_status": raw_feature_status,
-            "material_importance_threshold": MATERIAL_IMPORTANCE,
+            "cutoff_relative_exemptions": CUTOFF_RELATIVE_EXEMPT,
             "n_warn": int((fd.status == "WARN").sum()),
             "n_alert": int((fd.status == "ALERT").sum()),
             "top": fd.head(top_n).to_dict(orient="records"),

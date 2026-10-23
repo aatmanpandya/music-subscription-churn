@@ -37,7 +37,7 @@ A model version in the registry is one folder (a "bundle"): the XGBoost booster,
 | `monitoring/run_monitoring.py` | The monitoring job and its report |
 | `monitoring/recalibrate.py` | Leak-free recalibration, registration, promotion rule |
 | `service/` | FastAPI app and Dockerfile |
-| `tests/` | 63 pytest tests, none needing the real data |
+| `tests/` | 70 pytest tests, none needing the real data |
 | `monitoring/reports/` | The reports from the March run described below |
 
 ## Run it
@@ -48,7 +48,7 @@ Set up (the existing `.venv` plus the production extras):
 .venv/bin/pip install -r requirements.txt -r requirements-prod.txt
 ```
 
-Each stage, from the repo root. `make all` runs the first four.
+Each stage, from the repo root. `make all` runs the first four (the fourth with `--promote`).
 
 ```bash
 # 1. Train on the Feb cohort, evaluate, log to MLflow, register v1 as `champion`   (~2-5 min)
@@ -70,7 +70,7 @@ Each stage, from the repo root. `make all` runs the first four.
 .venv/bin/python -m pipeline.registry list
 .venv/bin/python -m pipeline.registry rollback          # champion <- previous
 
-# Tests (about 12 s)
+# Tests (10 to 35 s depending on machine load)
 .venv/bin/python -m pytest -q
 
 # API: export the champion, build the image, run it
@@ -103,7 +103,7 @@ The champion (v1, trained on February) scored the 970,960 March subscribers. Ful
 
 | Component | Status | Evidence |
 |---|---|---|
-| Feature drift | WARN | 1 feature at PSI ALERT, 2 at WARN, all three on features carrying under 0.5% of model gain |
+| Feature drift | WARN | Raw worst-PSI status is ALERT (1 feature at ALERT, 2 at WARN). All three are cutoff-relative features on the exemption list, so the component is capped at WARN |
 | Prediction drift | OK | Score PSI 0.007; mean raw score 6.37% (Feb) to 6.51% (Mar) |
 | Calibration | ALERT | Mean predicted 6.51% vs actual 8.99% (gap 27.6% of actual); ECE 0.0248 vs 0.0012 at reference |
 | Ranking performance | WARN | ROC-AUC 0.8733 vs 0.8987 at reference (-0.025) |
@@ -121,11 +121,11 @@ The two features that carry 91% of the model's gain barely moved: `auto_renew` P
 
 What the report shows is more useful than any single number:
 
-- **Input monitoring alone would have missed the incident.** With labels withheld (`--no-labels`) the status is WARN, from the three mechanical features. Inputs and scores looked stable.
+- **Input monitoring alone would have missed the incident, but only with the exemption list.** With labels withheld (`--no-labels`) the overall status is WARN because the three mechanical features are exempt from escalating past WARN. Without that exemption the same run is ALERT (tenure PSI 0.697), which would be a false alarm about the wrong thing. Either way, nothing in the inputs or scores pointed at the real problem: the score PSI was 0.007 and the two features carrying 91% of gain did not move.
 - **Labels exposed it.** Predicted churn is too low in every one of ten equal-count score bins, from 2x too low at the bottom (0.32% vs 0.63%) to 54.3% actual vs 44.6% predicted in the riskiest decile.
 - **The cause is not a change in who the subscribers are.** The auto-renew share moved from 88.7% to 88.2%. Churn rose inside each group: auto-renewers 3.0% to 4.5%, manual renewers 32.4% to 41.4%. The conditional churn rate moved, so only label-based checks can see it.
 
-Thresholds were set before looking at March: PSI 0.1 warn and 0.25 alert; calibration gap 10% and 20% of the actual rate; ECE relative to actual rate 10% and 20%; AUC drop 0.01 and 0.03. One rule was added after seeing the data: an ALERT-level PSI on a feature carrying under 1% of model gain is capped at WARN in the component status (the raw PSI status stays in the table). See `DECISIONS_PRODUCTION.md`.
+Thresholds were set before building the monitor (the notebook had already shown the 6.5% vs 9.0% gap, so they were not set blind to the incident): PSI 0.1 warn and 0.25 alert; calibration gap 10% and 20% of the actual rate; ECE relative to actual rate 10% and 20%; AUC drop 0.01 and 0.03. One rule was added after seeing the data: an explicit exemption list (`CUTOFF_RELATIVE_EXEMPT` in `monitoring/drift.py`) of features defined relative to the scoring cutoff (`subscriber_tenure_days`, `account_age_days`, `days_to_expiry`, `days_since_last_listen`, `n_transactions`, `n_cancels`), each with its reason recorded. An ALERT-level PSI on these is capped at WARN in the component status. The raw PSI status is always printed next to it. The list is a judgement from one cohort pair and is not validated out of sample. See `DECISIONS_PRODUCTION.md`.
 
 ## Recalibration results
 
@@ -140,7 +140,7 @@ Held-out half B:
 | (b) Platt scaling | 9.01% | 0.0048 | 0.0066 | 0.05240 | 0.8742 | 0.6028 |
 | (b) isotonic | 9.01% | 0.0010 | 0.0009 | 0.05215 | 0.8742 | 0.6028 |
 
-Over 10 repeated random splits the ECE is 0.0247, 0.0093, 0.0049 and 0.0010 with standard deviations of 0.0001 to 0.0003, so this is not one lucky split.
+Over 10 repeated random splits the ECE is 0.0247, 0.0093, 0.0049 and 0.0010 with standard deviations of 0.0001 to 0.0003. These are 10 different random seeds on the same month, not independent cohorts: they show the result does not depend on one lucky split, not that it holds on other months. The method choice (lowest ECE of three) and the promotion check both use half B, so the held-out numbers are mildly optimistic for the chosen method.
 
 - **Prior-shift** adds a constant to the log-odds for the new base rate. It is the cheapest fix and needs only a rate, but it closes only about 60% of the ECE gap: the miscalibration is not a constant shift (the gap is a factor of 2 at the bottom of the ranking and 1.2 at the top).
 - **Platt** (slope 0.94, intercept +0.42 in log-odds) fixes the average but not the shape.
@@ -148,7 +148,7 @@ Over 10 repeated random splits the ECE is 0.0247, 0.0093, 0.0049 and 0.0010 with
 
 Where the new base rate would come from in production: the base rate of the most recent matured cohort, or an early read of renewals inside the churn window. A label-free estimate (the EM algorithm of Saerens et al., which infers the new prior from scores alone) gave 6.71% against a true 8.99%, so it does not work here: it assumes only the base rate moved, and in March the conditional churn rate moved.
 
-**Promotion rule.** The challenger becomes `champion` only if, on held-out data: at least 50,000 users and 1,000 churners; mean predicted within 5% of actual; ECE at most half the champion's; ROC-AUC within 0.001; Brier not worse; and ECE better in every one of the 10 repeated splits. March passed all seven checks, so v2 (isotonic) was registered and promoted; v1 stays reachable as `previous` for rollback (`python -m pipeline.registry rollback`).
+**Promotion rule.** The challenger becomes `champion` only if, on held-out data: at least 50,000 users and 1,000 churners; mean predicted within 5% of actual; ECE at most half the champion's; ROC-AUC within 0.001; PR-AUC no more than 0.002 below the champion's (a top-of-list check); Brier not worse; and ECE better in every one of the 10 repeated splits. March passed all eight checks, so v2 (isotonic) was registered and promoted; v1 stays reachable as `previous` for rollback (`python -m pipeline.registry rollback`).
 
 The deployed calibrator is refitted on all March labels after the held-out check passed, so v2's own March numbers are in-sample (ECE 0.0002) and are not evidence. The evidence is the table above.
 
@@ -170,10 +170,9 @@ Measured on this machine (Apple Silicon, Docker via Colima, machine under load f
 
 - **Two cohorts only.** One real drift incident, one recalibration. Nothing here shows how the monitor behaves over a year, or how often to refit.
 - **The recalibration protocol cannot prove transfer to April.** Halves A and B are the same month. A calibrator encodes the base rate of the cohort it was fitted on: applied back to February, the March-fitted calibrator predicts 8.84% against a true 6.39%. It must be refitted as each cohort matures, and the champion should be re-monitored on the next cohort before trusting it.
-- **Labels arrive late.** The calibration check needs the churn window to close (about 30 days after expiry). Until then only the input and score monitors run, and in the March case they say WARN, not ALERT.
+- **Labels arrive late.** The calibration check needs the churn window to close (about 30 days after expiry). Until then only the input and score monitors run, and in the March case they say WARN (ALERT without the cutoff-relative exemption, and for the wrong reason).
 - **PSI has arbitrary thresholds and depends on binning.** The 0.1 and 0.25 rules of thumb come from credit scoring. Features defined relative to a moving cutoff (tenure, transaction counts) drift mechanically every month.
 - **The monitor is a batch job, not a scheduler.** Nothing runs it automatically, and there is no paging or dashboard.
 - **MLflow uses SQLite and local files.** Fine for one person; a team would need a shared tracking server and object storage.
 - **The API has no authentication, rate limiting or request logging,** and latency was measured on a loaded laptop, not a production host.
 - **Feature building is not part of this pipeline.** The raw CSVs are gone, so the features cannot be rebuilt here, and `src/build_features.py` is not tested.
-- **Environment:** installing MLflow downgraded `pyarrow` from 26.0.0 to 25.0.1 (see `requirements-prod.txt`).

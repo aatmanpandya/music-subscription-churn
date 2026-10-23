@@ -156,6 +156,7 @@
    "calibration_gap_within_5pct": true,
    "ece_at_most_half_of_old": true,
    "auc_unchanged_within_0.001": true,
+   "pr_auc_not_degraded": true,
    "brier_not_worse": true,
    "ece_improves_in_every_repeat": true
   },
@@ -167,11 +168,13 @@
   "max_calibration_gap_rel": 0.05,
   "max_ece_ratio": 0.5,
   "max_abs_auc_change": 0.001,
+  "max_pr_auc_drop": 0.002,
   "brier_not_worse": true,
   "ece_improves_in_all_repeats": true
  },
  "admission": {
   "max_abs_auc_change": 0.001,
+  "max_pr_auc_drop": 0.002,
   "brier_not_worse": true
  },
  "transfer_check": {

@@ -25,6 +25,7 @@ from pathlib import Path
 
 import mlflow
 import numpy as np
+import pyarrow as pa
 import pandas as pd
 import xgboost as xgb
 from sklearn.model_selection import train_test_split
@@ -150,7 +151,7 @@ def train(args) -> dict:
                 info = registry.log_and_register(
                     bundle, pip_requirements=[
                         f"xgboost=={xgb.__version__}", f"pandas=={pd.__version__}",
-                        f"numpy=={np.__version__}", "pyarrow"])
+                        f"numpy=={np.__version__}", f"pyarrow=={pa.__version__}"])
                 version = info.registered_model_version
                 if not registry.has_alias(client, config.CHAMPION_ALIAS):
                     registry.set_alias(client, config.CHAMPION_ALIAS, version)

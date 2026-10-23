@@ -3,7 +3,7 @@ PY := .venv/bin/python
 export MLFLOW_DISABLE_AGENT_HINT=1
 
 .PHONY: all clean train score monitor recalibrate promote test export image serve-docker
-all: train score monitor recalibrate
+all: train score monitor promote
 
 clean:            ## fresh MLflow store and outputs
 	rm -rf mlflow.db mlartifacts outputs service/model_bundle

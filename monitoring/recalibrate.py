@@ -54,11 +54,12 @@ RULE = {
     "max_calibration_gap_rel": 0.05,     # |mean pred - actual| / actual
     "max_ece_ratio": 0.5,                # ECE_new <= 0.5 * ECE_old
     "max_abs_auc_change": 0.001,
+    "max_pr_auc_drop": 0.002,            # top-heavy check: calibrator must not blur the top of the list
     "brier_not_worse": True,
     "ece_improves_in_all_repeats": True,
 }
 # Candidate admission rule for choosing which method to register.
-ADMISSION = {"max_abs_auc_change": 0.001, "brier_not_worse": True}
+ADMISSION = {"max_abs_auc_change": 0.001, "max_pr_auc_drop": 0.002, "brier_not_worse": True}
 
 
 def fit_candidates(raw_a, y_a, old_rate: float) -> dict:
@@ -80,6 +81,7 @@ def choose(results: dict) -> str:
     base = results["none (raw model)"]
     ok = {k: v for k, v in results.items() if k != "none (raw model)"
           and abs(v["roc_auc"] - base["roc_auc"]) <= ADMISSION["max_abs_auc_change"]
+          and v["pr_auc"] >= base["pr_auc"] - ADMISSION["max_pr_auc_drop"]
           and v["brier"] <= base["brier"]}
     if not ok:
         raise SystemExit("no calibrator passed the admission rule; keep the current champion")
@@ -95,6 +97,7 @@ def promotion_decision(results: dict, chosen: str, n_b: int, pos_b: int, repeat_
         <= RULE["max_calibration_gap_rel"],
         "ece_at_most_half_of_old": new["ece_quantile10"] <= RULE["max_ece_ratio"] * old["ece_quantile10"],
         "auc_unchanged_within_0.001": abs(new["roc_auc"] - old["roc_auc"]) <= RULE["max_abs_auc_change"],
+        "pr_auc_not_degraded": new["pr_auc"] >= old["pr_auc"] - RULE["max_pr_auc_drop"],
         "brier_not_worse": new["brier"] <= old["brier"],
         "ece_improves_in_every_repeat": bool(
             (np.array(repeat_ece[chosen]) < np.array(repeat_ece["none (raw model)"])).all()),
@@ -232,7 +235,7 @@ def main(argv=None) -> int:
             bundle = final_scorer.save(Path(tmp) / "bundle", profile)
             import numpy as _np, pandas as _pd, xgboost as _xgb  # noqa: E401
             info = registry.log_and_register(bundle, pip_requirements=[
-                f"xgboost=={_xgb.__version__}", f"pandas=={_pd.__version__}", f"numpy=={_np.__version__}", "pyarrow"])
+                f"xgboost=={_xgb.__version__}", f"pandas=={_pd.__version__}", f"numpy=={_np.__version__}", f"pyarrow=={__import__('pyarrow').__version__}"])
     new_v = info.registered_model_version
     for k, v in {"calibration": chosen, "parent_version": parent.version, "calibration_cohort": args.cohort,
                  "promotion_rule_passed": str(decision["promote"])}.items():

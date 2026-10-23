@@ -2,7 +2,8 @@
 #   python -m pipeline.export_champion
 #   docker build -f service/Dockerfile -t kkbox-churn-api .
 #   docker run --rm -p 8000:8000 kkbox-churn-api
-FROM python:3.12-slim
+# Pinned by version tag and digest (python 3.12.15, multi-arch index) for reproducible builds.
+FROM python:3.12.15-slim@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704
 
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 MODEL_BUNDLE_DIR=/app/model_bundle CHURN_NTHREAD=2
 WORKDIR /app

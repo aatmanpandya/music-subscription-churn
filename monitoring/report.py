@@ -118,10 +118,14 @@ def to_markdown(res: dict, meta: dict) -> str:
     fd = res["feature_drift"]
     a("## Feature drift (ranked by PSI)")
     a("")
-    a(f"{fd['n_alert']} feature(s) at ALERT, {fd['n_warn']} at WARN, of {len(fd['all'])} "
-      f"(raw worst-PSI status {fd['raw_max_psi_status']}; the component status caps ALERTs on features "
-      f"with under {fd['material_importance_threshold']:.0%} of model gain at WARN, because drift in an "
-      f"input the model barely uses cannot move its predictions much).")
+    a(f"{fd['n_alert']} feature(s) at ALERT, {fd['n_warn']} at WARN, of {len(fd['all'])}. "
+      f"Raw worst-PSI status: **{fd['raw_max_psi_status']}**. Component status: **{res['components']['feature_drift']}**, "
+      "because an ALERT on a cutoff-relative feature (list below) is capped at WARN. "
+      "These features drift mechanically as the cutoff date moves. The exemption list was written after "
+      "seeing the March run and is not validated out of sample.")
+    a("")
+    for k, why in fd["cutoff_relative_exemptions"].items():
+        a(f"- exempt `{k}`: {why}")
     a("")
     a("| # | feature | PSI | status | model importance | null rate ref -> batch | mean ref -> batch |")
     a("|---|---|---|---|---|---|---|")

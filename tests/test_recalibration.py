@@ -110,8 +110,8 @@ def test_calibrator_json_roundtrip(cal):
 
 
 def test_promotion_rule_blocks_a_calibrator_that_changes_ranking():
-    base = {"mean_pred": 0.065, "actual_rate": 0.09, "ece_quantile10": 0.025, "roc_auc": 0.873, "brier": 0.054}
-    good = {"mean_pred": 0.0905, "actual_rate": 0.09, "ece_quantile10": 0.002, "roc_auc": 0.8731, "brier": 0.050}
+    base = {"mean_pred": 0.065, "actual_rate": 0.09, "ece_quantile10": 0.025, "roc_auc": 0.873, "brier": 0.054, "pr_auc": 0.603}
+    good = {"mean_pred": 0.0905, "actual_rate": 0.09, "ece_quantile10": 0.002, "roc_auc": 0.8731, "brier": 0.050, "pr_auc": 0.603}
     bad_auc = {**good, "roc_auc": 0.85}
     rep_ok = {"none (raw model)": [0.025] * 10, "x": [0.002] * 10}
     assert R.promotion_decision({"none (raw model)": base, "x": good}, "x", 100000, 9000, rep_ok)["promote"]
@@ -119,3 +119,15 @@ def test_promotion_rule_blocks_a_calibrator_that_changes_ranking():
     assert not d["promote"] and not d["checks"]["auc_unchanged_within_0.001"]
     small = R.promotion_decision({"none (raw model)": base, "x": good}, "x", 1000, 90, rep_ok)
     assert not small["promote"]
+
+
+def test_promotion_rule_blocks_a_calibrator_that_blurs_the_top_of_the_list():
+    base = {"mean_pred": 0.065, "actual_rate": 0.09, "ece_quantile10": 0.025, "roc_auc": 0.873,
+            "brier": 0.054, "pr_auc": 0.603}
+    blurred = {"mean_pred": 0.0905, "actual_rate": 0.09, "ece_quantile10": 0.002, "roc_auc": 0.8729,
+               "brier": 0.050, "pr_auc": 0.596}          # the plain-isotonic failure seen on March
+    rep = {"none (raw model)": [0.025] * 10, "x": [0.002] * 10}
+    d = R.promotion_decision({"none (raw model)": base, "x": blurred}, "x", 100000, 9000, rep)
+    assert not d["promote"] and not d["checks"]["pr_auc_not_degraded"]
+    ok = R.promotion_decision({"none (raw model)": base, "x": {**blurred, "pr_auc": 0.6029}}, "x", 100000, 9000, rep)
+    assert ok["promote"]

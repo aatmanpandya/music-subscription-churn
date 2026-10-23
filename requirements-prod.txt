@@ -1,12 +1,8 @@
-# Production-pipeline additions on top of requirements.txt (pinned to the versions this
-# project was built and tested with).
-#
-# NOTE: installing mlflow pulled pyarrow down to 25.0.1 (requirements.txt pins 26.0.0).
-# Parquet reads/writes are unaffected; keep both files in one environment at 25.0.1.
+# Production-pipeline additions on top of requirements.txt. Install both together:
+#   pip install -r requirements.txt -r requirements-prod.txt
 mlflow==3.17.2
 fastapi==0.160.0
 uvicorn==0.54.0
 pydantic==2.14.1
 pytest==9.1.1
 httpx==0.28.1
-pyarrow==25.0.1

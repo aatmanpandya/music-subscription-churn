@@ -25,7 +25,8 @@ from pathlib import Path
 from typing import Annotated, Literal, Optional, Union
 
 import pandas as pd
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Discriminator, Field, Tag, create_model
 
@@ -100,6 +101,14 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="KKBox churn model", version="1.0", lifespan=lifespan)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request: Request, exc: RequestValidationError):
+    """422 with field locations and messages only. The default body echoes the offending
+    input, which crashes JSON encoding (500) when the input is inf or NaN."""
+    detail = [{"loc": [str(x) for x in e["loc"]], "msg": e["msg"], "type": e["type"]} for e in exc.errors()]
+    return JSONResponse(status_code=422, content={"detail": detail})
 
 
 @app.get("/health")

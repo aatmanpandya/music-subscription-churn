@@ -29,6 +29,7 @@ Chosen by admission rule + lowest held-out ECE: **isotonic**. Registered as v2.
 - PASS: calibration_gap_within_5pct
 - PASS: ece_at_most_half_of_old
 - PASS: auc_unchanged_within_0.001
+- PASS: pr_auc_not_degraded
 - PASS: brier_not_worse
 - PASS: ece_improves_in_every_repeat
 

@@ -71,3 +71,14 @@ def test_validation_errors_name_the_offending_field(client, train_frame):
     assert any("hours_30" in str(d["loc"]) for d in detail) and len(detail) == 1
     detail = client.post("/predict", json={"subscribers": [bad]}).json()["detail"]
     assert any("hours_30" in str(d["loc"]) for d in detail)
+
+
+@pytest.mark.parametrize("literal", ["1e999", "NaN", "Infinity", "-Infinity"])
+def test_inf_and_nan_give_422_not_500(client, train_frame, literal):
+    row = _row(train_frame)
+    body = json.dumps(row).replace(json.dumps(row["hours_30"]), literal, 1)
+    r = client.post("/predict", content=body, headers={"content-type": "application/json"})
+    assert r.status_code == 422, r.text
+    r = client.post("/predict", content=json.dumps({"subscribers": [row]}).replace(
+        json.dumps(row["hours_30"]), literal, 1), headers={"content-type": "application/json"})
+    assert r.status_code == 422, r.text

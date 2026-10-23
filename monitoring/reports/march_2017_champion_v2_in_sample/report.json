@@ -36,7 +36,14 @@
  "n_rows": 970960,
  "feature_drift": {
   "raw_max_psi_status": "ALERT",
-  "material_importance_threshold": 0.01,
+  "cutoff_relative_exemptions": {
+   "subscriber_tenure_days": "days from first transaction (fixed data start) to the cutoff; upper tail moves by the cutoff shift",
+   "account_age_days": "days from registration to the cutoff; grows by the cutoff shift",
+   "days_to_expiry": "expiry date minus the cutoff; depends on which transactions files exist at the cutoff",
+   "days_since_last_listen": "days from last listening to the cutoff; depends on the log window end",
+   "n_transactions": "cumulative count of transactions up to the cutoff; grows with each month of history",
+   "n_cancels": "cumulative count of cancellations up to the cutoff; grows with each month of history"
+  },
   "n_warn": 2,
   "n_alert": 1,
   "top": [
@@ -51,7 +58,7 @@
     "ref_mean": 484.7353693958827,
     "cur_mean": 501.1760147289031,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": "days from first transaction (fixed data start) to the cutoff; upper tail moves by the cutoff shift"
    },
    {
     "feature": "days_to_expiry",
@@ -64,7 +71,7 @@
     "ref_mean": 16.91595867723554,
     "cur_mean": 19.08188976865792,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": "expiry date minus the cutoff; depends on which transactions files exist at the cutoff"
    },
    {
     "feature": "n_transactions",
@@ -77,7 +84,7 @@
     "ref_mean": 15.169764057349667,
     "cur_mean": 15.78919722108637,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": "cumulative count of transactions up to the cutoff; grows with each month of history"
    },
    {
     "feature": "list_price",
@@ -90,7 +97,7 @@
     "ref_mean": 149.59749059882887,
     "cur_mean": 152.38947953194636,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": NaN
    },
    {
     "feature": "days_since_last_listen",
@@ -103,7 +110,7 @@
     "ref_mean": 23.490031014109398,
     "cur_mean": 24.076017057589358,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": "days from last listening to the cutoff; depends on the log window end"
    },
    {
     "feature": "hours_change",
@@ -116,7 +123,7 @@
     "ref_mean": 0.5880042304217962,
     "cur_mean": -0.44666813179596593,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": NaN
    },
    {
     "feature": "account_age_days",
@@ -129,7 +136,7 @@
     "ref_mean": 1246.9825037820879,
     "cur_mean": 1263.7011116570088,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": "days from registration to the cutoff; grows by the cutoff shift"
    },
    {
     "feature": "payment_method",
@@ -142,7 +149,7 @@
     "ref_mean": NaN,
     "cur_mean": NaN,
     "unseen_share": 3.089725632363846e-06,
-    "material": false
+    "exempt_reason": NaN
    },
    {
     "feature": "active_days_prev30",
@@ -155,7 +162,7 @@
     "ref_mean": 13.03785358700655,
     "cur_mean": 12.992648512812062,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": NaN
    },
    {
     "feature": "amount_paid",
@@ -168,7 +175,7 @@
     "ref_mean": 149.23068546295343,
     "cur_mean": 152.02764250812652,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": NaN
    }
   ],
   "all": [
@@ -183,7 +190,7 @@
     "ref_mean": 484.7353693958827,
     "cur_mean": 501.1760147289031,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": "days from first transaction (fixed data start) to the cutoff; upper tail moves by the cutoff shift"
    },
    {
     "feature": "days_to_expiry",
@@ -196,7 +203,7 @@
     "ref_mean": 16.91595867723554,
     "cur_mean": 19.08188976865792,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": "expiry date minus the cutoff; depends on which transactions files exist at the cutoff"
    },
    {
     "feature": "n_transactions",
@@ -209,7 +216,7 @@
     "ref_mean": 15.169764057349667,
     "cur_mean": 15.78919722108637,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": "cumulative count of transactions up to the cutoff; grows with each month of history"
    },
    {
     "feature": "list_price",
@@ -222,7 +229,7 @@
     "ref_mean": 149.59749059882887,
     "cur_mean": 152.38947953194636,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": NaN
    },
    {
     "feature": "days_since_last_listen",
@@ -235,7 +242,7 @@
     "ref_mean": 23.490031014109398,
     "cur_mean": 24.076017057589358,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": "days from last listening to the cutoff; depends on the log window end"
    },
    {
     "feature": "hours_change",
@@ -248,7 +255,7 @@
     "ref_mean": 0.5880042304217962,
     "cur_mean": -0.44666813179596593,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": NaN
    },
    {
     "feature": "account_age_days",
@@ -261,7 +268,7 @@
     "ref_mean": 1246.9825037820879,
     "cur_mean": 1263.7011116570088,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": "days from registration to the cutoff; grows by the cutoff shift"
    },
    {
     "feature": "payment_method",
@@ -274,7 +281,7 @@
     "ref_mean": NaN,
     "cur_mean": NaN,
     "unseen_share": 3.089725632363846e-06,
-    "material": false
+    "exempt_reason": NaN
    },
    {
     "feature": "active_days_prev30",
@@ -287,7 +294,7 @@
     "ref_mean": 13.03785358700655,
     "cur_mean": 12.992648512812062,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": NaN
    },
    {
     "feature": "amount_paid",
@@ -300,7 +307,7 @@
     "ref_mean": 149.23068546295343,
     "cur_mean": 152.02764250812652,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": NaN
    },
    {
     "feature": "hours_30",
@@ -313,7 +320,7 @@
     "ref_mean": 29.20230421179876,
     "cur_mean": 28.282841426873343,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": NaN
    },
    {
     "feature": "avg_unique_songs_30",
@@ -326,7 +333,7 @@
     "ref_mean": 25.2586812091981,
     "cur_mean": 24.777306345281982,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": NaN
    },
    {
     "feature": "active_days_30",
@@ -339,7 +346,7 @@
     "ref_mean": 13.29301331109614,
     "cur_mean": 13.062109664661778,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": NaN
    },
    {
     "feature": "registered_via",
@@ -352,7 +359,7 @@
     "ref_mean": NaN,
     "cur_mean": NaN,
     "unseen_share": 0.0,
-    "material": false
+    "exempt_reason": NaN
    },
    {
     "feature": "hours_prev30",
@@ -365,7 +372,7 @@
     "ref_mean": 28.614299981376966,
     "cur_mean": 28.72950955866931,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": NaN
    },
    {
     "feature": "n_cancels",
@@ -378,7 +385,7 @@
     "ref_mean": 0.24818183469683117,
     "cur_mean": 0.2583640013382402,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": "cumulative count of cancellations up to the cutoff; grows with each month of history"
    },
    {
     "feature": "completion_rate_30",
@@ -391,7 +398,7 @@
     "ref_mean": 0.6971423909550252,
     "cur_mean": 0.6958178305977712,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": NaN
    },
    {
     "feature": "auto_renew",
@@ -404,7 +411,7 @@
     "ref_mean": 0.8868549121245335,
     "cur_mean": 0.8817867159006894,
     "unseen_share": NaN,
-    "material": true
+    "exempt_reason": NaN
    },
    {
     "feature": "share_auto_renew",
@@ -417,7 +424,7 @@
     "ref_mean": 0.8746597888943755,
     "cur_mean": 0.8697973678836883,
     "unseen_share": NaN,
-    "material": true
+    "exempt_reason": NaN
    },
    {
     "feature": "plan_days",
@@ -430,7 +437,7 @@
     "ref_mean": 34.75877190326533,
     "cur_mean": 35.29607222366785,
     "unseen_share": NaN,
-    "material": true
+    "exempt_reason": NaN
    },
    {
     "feature": "age",
@@ -443,7 +450,7 @@
     "ref_mean": 29.94508072128331,
     "cur_mean": 29.876853359144704,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": NaN
    },
    {
     "feature": "city",
@@ -456,7 +463,7 @@
     "ref_mean": NaN,
     "cur_mean": NaN,
     "unseen_share": 0.0,
-    "material": false
+    "exempt_reason": NaN
    },
    {
     "feature": "discount",
@@ -469,7 +476,7 @@
     "ref_mean": 0.36680513587543423,
     "cur_mean": 0.3618370238198497,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": NaN
    },
    {
     "feature": "gender",
@@ -482,7 +489,7 @@
     "ref_mean": NaN,
     "cur_mean": NaN,
     "unseen_share": 0.0,
-    "material": false
+    "exempt_reason": NaN
    },
    {
     "feature": "has_logs",
@@ -495,7 +502,7 @@
     "ref_mean": 0.8718984501440684,
     "cur_mean": 0.8757271154321496,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": NaN
    },
    {
     "feature": "has_profile",
@@ -508,7 +515,7 @@
     "ref_mean": 0.8834057955688764,
     "cur_mean": 0.8867172695064678,
     "unseen_share": NaN,
-    "material": false
+    "exempt_reason": NaN
    },
    {
     "feature": "last_tx_cancel",
@@ -521,7 +528,7 @@
     "ref_mean": 0.00963027106457792,
     "cur_mean": 0.009638220801374588,
     "unseen_share": NaN,
-    "material": true
+    "exempt_reason": NaN
    }
   ]
  },

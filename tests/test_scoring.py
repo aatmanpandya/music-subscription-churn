@@ -56,3 +56,12 @@ def test_predict_raises_on_schema_violation(trained, train_frame):
     bad = train_frame.head(100).drop(columns=["plan_days"])
     with pytest.raises(SchemaValidationError):
         trained["scorer"].predict(bad)
+
+
+def test_duplicate_subscriber_ids_are_rejected(trained, train_frame, tmp_path):
+    dup = train_frame.head(300).drop(columns=["is_churn"]).copy()
+    dup.loc[dup.index[5], "msno"] = dup.loc[dup.index[6], "msno"]
+    inp, out = tmp_path / "dup.parquet", tmp_path / "scores.parquet"
+    dup.to_parquet(inp, index=False)
+    assert score_cli.main(["--input", str(inp), "--output", str(out)]) == 3
+    assert not out.exists()

@@ -43,14 +43,20 @@ def test_overall_status_is_worst_component():
     assert drift.worst(["NOT_EVALUATED"]) == "NOT_EVALUATED"
 
 
-def test_alert_on_an_unimportant_feature_is_capped_at_warn(trained):
-    """Drift in an input the model barely uses must not page anyone on its own."""
+def test_alert_on_a_cutoff_relative_feature_is_capped_at_warn_but_raw_status_is_kept(trained):
+    """Mechanical, calendar-driven drift must not page anyone on its own."""
     d = make_frame(30000, seed=13)
     d["account_age_days"] = d["account_age_days"] * 0.2                        # big shift
-    profile = copy.deepcopy(trained["profile"])
-    profile["importance_share"]["account_age_days"] = 0.001                     # model barely uses it
-    res = monitor(d, trained["scorer"], profile)
+    res = monitor(d, trained["scorer"], trained["profile"])
     row = next(r for r in res["feature_drift"]["all"] if r["feature"] == "account_age_days")
-    assert row["status"] == "ALERT" and row["importance_share"] < drift.MATERIAL_IMPORTANCE
+    assert row["status"] == "ALERT" and row["exempt_reason"]
     assert res["feature_drift"]["raw_max_psi_status"] == "ALERT"
     assert res["components"]["feature_drift"] == "WARN"
+
+
+def test_alert_on_a_non_exempt_feature_is_not_capped_whatever_its_importance(trained):
+    d = make_frame(30000, seed=14)
+    d["completion_rate_30"] = (d["completion_rate_30"] * 0.2).clip(0, 1)
+    res = monitor(d, trained["scorer"], trained["profile"])
+    assert "completion_rate_30" not in drift.CUTOFF_RELATIVE_EXEMPT
+    assert res["components"]["feature_drift"] == "ALERT"

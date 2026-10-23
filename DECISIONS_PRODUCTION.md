@@ -144,13 +144,13 @@ My first rule was simply "overall feature status = worst per-feature PSI". That 
 - It is not caused by the second transactions file: on `features_oot_v1tx` the PSI is 0.696.
 - The model barely uses it: 0.3% of total gain. The two dominant features, `auto_renew` (64.8%) and `last_tx_cancel` (25.9%), had PSI of 0.0004 and 0.0001.
 
-So the "alert" was a calendar artifact in a nearly-unused feature. **Decision (made after seeing this, and recorded as such):** keep every raw PSI status in the table, but in the component status cap an ALERT-level PSI at WARN when the feature carries under 1% of gain. **Alternatives:** (1) keep the raw rule: simple, but a page every month for a feature that cannot change predictions teaches people to ignore the monitor; (2) drop relative-time features from monitoring: loses real signals; (3) weight PSI by importance continuously: harder to explain. **Risk to note:** gain importance is one view of "matters" and a feature the model ignores today can matter after retraining; and the rule was written after I had seen the March result, so it is not a clean pre-registered test. The report prints both statuses so the cap is visible. A test pins the behaviour.
+So the "alert" was a calendar artifact in a nearly-unused feature. **Decision (made after seeing this, and recorded as such):** keep every raw PSI status in the table, but in the component status cap an ALERT-level PSI at WARN for an explicit exemption list of cutoff-relative features (`CUTOFF_RELATIVE_EXEMPT`: tenure, account age, days to expiry, days since last listen, cumulative transaction and cancel counts), with the reason recorded per feature. The first version of this rule capped by importance (under 1% of gain); an audit pointed out that was a proxy for the real reason and could hide drift in a genuinely unimportant but non-mechanical feature, so it was replaced by the explicit list. The list is a judgement from one cohort pair and has not been validated out of sample. **Alternatives:** (1) keep the raw rule: simple, but a page every month for a feature that cannot change predictions teaches people to ignore the monitor; (2) drop relative-time features from monitoring: loses real signals; (3) weight PSI by importance continuously: harder to explain. **Risk to note:** the exemption list is hand-made (a feature missing from it, like a new cutoff-relative feature, will page); a feature can be exempt here and still carry real behavioural drift that the cap hides, which is why the raw status is printed beside it; and the rule was written after I had seen the March result, so it is not a clean pre-registered test. The report prints both statuses so the cap is visible. A test pins the behaviour.
 
 A related general point worth knowing: any feature defined as "days since a fixed date" or "count of events so far" drifts mechanically each month. `n_transactions` (PSI 0.159) is probably another case (it is not the second file: 0.153 without it).
 
 ### 5.4 Input monitoring alone would not have caught the incident
 
-This is the main finding of the project. With labels withheld (`--no-labels`), the overall status is WARN: nothing worse than the three mechanical features. The score distribution did not move (PSI 0.007). Only comparing predictions with outcomes showed the problem.
+This is the main finding of the project. With labels withheld (`--no-labels`), the overall status is WARN, and only because of the exemption list (section 5.3): without it the run is ALERT on tenure (PSI 0.697), a false alarm about the wrong thing. Nothing worse than the three mechanical features appeared. The score distribution did not move (PSI 0.007). Only comparing predictions with outcomes showed the problem.
 
 What actually changed, from the March scores and labels:
 
@@ -170,7 +170,7 @@ Two more March facts worth recording. 9.2% of March subscribers (89,259) were no
 
 **Sample size matters for ECE.** My unit-test data first produced a "calibration WARN" on a perfectly stable synthetic batch of 30,000 rows (about 1% churn): ECE has sampling noise, and ECE / actual rate came out at 16% there against 7.6% at 100,000 rows. At 970,960 rows the noise is negligible. In production, small batches need either larger windows or wider thresholds.
 
-**Thresholds** (chosen before looking at March): calibration gap |mean predicted - actual| / actual warn 10%, alert 20%; ECE / actual rate warn 10%, alert 20%; AUC drop warn 0.01, alert 0.03. Relative gaps are used because 1 percentage point is a big error at a 3% base rate and a small one at 50%. Overall status is the worst component; components needing labels show "not evaluated" until labels exist.
+**Thresholds** (chosen before building the monitor; the notebook had already shown the 6.5% vs 9.0% gap, so they were not set blind to the incident): calibration gap |mean predicted - actual| / actual warn 10%, alert 20%; ECE / actual rate warn 10%, alert 20%; AUC drop warn 0.01, alert 0.03. Relative gaps are used because 1 percentage point is a big error at a 3% base rate and a small one at 50%. Overall status is the worst component; components needing labels show "not evaluated" until labels exist.
 
 ---
 
@@ -186,7 +186,7 @@ Labels for a cohort exist only after its 30-day churn window closes. The risk is
 1. Split March subscribers at random, stratified by churn, into half A and half B (485,480 users each).
 2. Fit every calibrator on A only.
 3. Report every "after" number on B.
-4. Repeat for 10 other random splits to show the result is stable (standard deviation of ECE 0.0001 to 0.0003).
+4. Repeat for 10 other random splits to show the result is stable (standard deviation of ECE 0.0001 to 0.0003). These are 10 seeds on the same month, not independent cohorts. Also note that the method choice and the promotion check both read half B, so the held-out numbers for the chosen method are mildly optimistic.
 5. After the check passes, refit the chosen method on all March labels for deployment (more data, same recipe). That refit's own March numbers are in-sample and are never used as evidence.
 
 **The limit of this protocol, stated plainly.** A and B come from the same month. It proves the method fixes March-like data. It cannot prove that a calibrator fitted on March will be right for April. A later cohort is not available. The transfer check below shows the danger concretely.
@@ -220,7 +220,7 @@ The first version of isotonic passed every check, but the in-sample PR-AUC dropp
 
 **Selection rule** (set before running): among the three methods, admit those whose held-out ROC-AUC is within 0.001 of the uncalibrated model and whose Brier is not worse; choose the lowest held-out ECE. Isotonic won. One honest caveat: picking the best of three on half B and then reporting half B is mildly optimistic; with 485k rows and gaps this large (0.0010 vs 0.0048) it does not change the conclusion, and the 10-split table is consistent.
 
-**Promotion rule**: the challenger replaces the champion only if all hold on held-out data: at least 50,000 users and 1,000 positives; mean predicted within 5% of actual; ECE at most half the champion's; ROC-AUC within 0.001 of the champion's; Brier not worse; and ECE better in every one of the 10 repeated splits. It is coded (`promotion_decision`) and tested, including that it blocks a calibrator that damages ranking. March passed all seven. The champion alias moved to v2 and v1 became `previous`.
+**Promotion rule**: the challenger replaces the champion only if all hold on held-out data: at least 50,000 users and 1,000 positives; mean predicted within 5% of actual; ECE at most half the champion's; ROC-AUC within 0.001 of the champion's; PR-AUC no more than 0.002 below it (added after an audit noted the rule checked only ROC-AUC, which would not have caught the plain-isotonic tie problem in 6.5); Brier not worse; and ECE better in every one of the 10 repeated splits. It is coded (`promotion_decision`) and tested, including that it blocks a calibrator that damages ranking. March passed all eight. The champion alias moved to v2 and v1 became `previous`.
 
 **Why a coded rule.** A promotion that depends on someone eyeballing a chart is not reproducible and not auditable.
 
@@ -232,7 +232,7 @@ Applying the March-fitted isotonic back to the February cohort gives a mean pred
 
 ## 7. Tests
 
-63 pytest tests in about 12 seconds. They use a synthetic data generator, because the real parquets are gitignored and tests that need them would fail for anyone who clones the repo. A tiny model is trained through the real pipeline into a throwaway MLflow store.
+70 pytest tests in 10 to 35 seconds depending on machine load. They use a synthetic data generator, because the real parquets are gitignored and tests that need them would fail for anyone who clones the repo. A tiny model is trained through the real pipeline into a throwaway MLflow store.
 
 What is covered, per the brief: schema violations caught (missing column, wrong dtype, out of range, flags, nulls, infinities, bad labels, duplicate ids, zero rows); preprocessing identical at train and score time (subset equals subset of full, JSON round trip, pinned categories, Int64 vs float64, scorer equals direct booster path); PSI near 0 for identical or same-distribution samples and large for shifted, known-value check, nulls, ties, categorical; scoring output well formed (columns, ids, ranges, version, bad batch rejected with no output, registry load equals in-memory model, pyfunc loads by alias); recalibration improves held-out ECE for all three methods and leaves AUC unchanged; the isotonic no-ties property; monitoring flags a miniature of the March incident but stays quiet on stable data; the API.
 
@@ -264,7 +264,7 @@ What is covered, per the brief: schema violations caught (missing column, wrong 
 
 ## 9. Environment note
 
-Installing MLflow pulled `pyarrow` down from 26.0.0 (pinned in the original `requirements.txt`) to 25.0.1. Parquet reading is unaffected (all numbers reproduce), but the two requirement files now disagree; `requirements-prod.txt` records the resolved versions.
+MLflow 3.17.2 requires `pyarrow<26`, while the original `requirements.txt` pinned 26.0.0, so `pip install -r requirements.txt -r requirements-prod.txt` was unsatisfiable. Fixed by pinning `pyarrow==25.0.1` in `requirements.txt` (the only edit to that file) and removing the pin from `requirements-prod.txt`. Verified: the documented install resolves with pip and installs in a fresh venv, reads the feature parquets, and the 70 tests pass there. I did not rerun the notebook itself; it only uses `pd.read_parquet`, which works.
 
 ## 10. Not done, and why
 

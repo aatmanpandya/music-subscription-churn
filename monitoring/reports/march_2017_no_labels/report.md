@@ -2,7 +2,7 @@
 
 **Overall status: WARN**
 
-- Model: `kkbox-churn` v1 (alias `champion`, calibration `identity`)
+- Model: `kkbox-churn` v1 (alias `None`, calibration `identity`)
 - Batch: `features_oot.parquet`, 970,960 subscribers
 - Reference: training cohort `features.parquet` (frozen profile stored with the model)
 
@@ -26,7 +26,14 @@ Labels not supplied: not evaluated. Re-run with labels once the churn window has
 
 ## Feature drift (ranked by PSI)
 
-1 feature(s) at ALERT, 2 at WARN, of 27 (raw worst-PSI status ALERT; the component status caps ALERTs on features with under 1% of model gain at WARN, because drift in an input the model barely uses cannot move its predictions much).
+1 feature(s) at ALERT, 2 at WARN, of 27. Raw worst-PSI status: **ALERT**. Component status: **WARN**, because an ALERT on a cutoff-relative feature (list below) is capped at WARN. These features drift mechanically as the cutoff date moves. The exemption list was written after seeing the March run and is not validated out of sample.
+
+- exempt `subscriber_tenure_days`: days from first transaction (fixed data start) to the cutoff; upper tail moves by the cutoff shift
+- exempt `account_age_days`: days from registration to the cutoff; grows by the cutoff shift
+- exempt `days_to_expiry`: expiry date minus the cutoff; depends on which transactions files exist at the cutoff
+- exempt `days_since_last_listen`: days from last listening to the cutoff; depends on the log window end
+- exempt `n_transactions`: cumulative count of transactions up to the cutoff; grows with each month of history
+- exempt `n_cancels`: cumulative count of cancellations up to the cutoff; grows with each month of history
 
 | # | feature | PSI | status | model importance | null rate ref -> batch | mean ref -> batch |
 |---|---|---|---|---|---|---|
